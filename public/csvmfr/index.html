@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>CSV MFR</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<script src="/public/htmx.js"></script>
+	<script src="/public/index.js"></script>
+	<script src="/public/csvmfr/index.js"></script>
+</head>
+
+<body>
+	<div hx-get="/public/components/navbar.html" hx-trigger="load" hx-swap="outerHTML"></div>
+	<h1>CSV MFR</h1>
+	<input id="main_file_input" type="file" name="csv_file" accept=".csv">
+	<br>
+	<select id="select_stage_type_main" class="test" name="select_stage_type_main">
+		<option value="map">Map</option>
+		<option value="filter">Filter</option>
+		<option value="reduce">Reduce</option>
+	</select>
+	<button onclick="add_stage_main()" class="test">Add stage</button>
+	<section id="pipeline"></section>
+	<section id="output"></section>
+</body>
+
+</html>
