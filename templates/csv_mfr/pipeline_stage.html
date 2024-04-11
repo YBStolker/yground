@@ -1,6 +1,6 @@
-<section class="stage_section">
-	<p class="stage_title"></p>
-	<textarea class="stage_body"></textarea>
+<section class="stage_section {{ stage_type }}">
+	<p class="stage_title">{{ stage_title }}</p>
+	<textarea class="stage_body" onchange="update_output()"></textarea>
 	<br>
 	<select class="stage_type_select">
 		<option value="map">Map</option>

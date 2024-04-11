@@ -7,13 +7,24 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<script src="/public/htmx.js"></script>
 	<script src="/public/index.js"></script>
-	<script src="/public/csvmfr/index.js"></script>
+	<script src="/public/csv_mfr/index.js"></script>
 </head>
 
 <body>
-	<div hx-get="/public/components/navbar.html" hx-trigger="load" hx-swap="outerHTML"></div>
+	<nav hx-get="/navbar/csv_mfr" hx-trigger="load" hx-swap="outerHTML"></nav>
+	<div name="test" id="test_div"></div>
 	<h1>CSV MFR</h1>
 	<input id="main_file_input" type="file" name="csv_file" accept=".csv">
+	<br>
+	<p>Separator</p>
+	<input id="main_separator_input" type="text" value=";" onchange="update_output()">
+	<br>
+	<p>Newline</p>
+	<input id="main_newline_input" type="text" value="\n" onchange="update_output()">
+	<br>
+	<p>Quote</p>
+	<input id="main_quote_input" type="text" value="&quot;" onchange="update_output()">
+	<br>
 	<br>
 	<select id="select_stage_type_main" class="test" name="select_stage_type_main">
 		<option value="map">Map</option>
@@ -22,7 +33,6 @@
 	</select>
 	<button onclick="add_stage_main()" class="test">Add stage</button>
 	<section id="pipeline"></section>
-	<section id="output"></section>
 </body>
 
 </html>

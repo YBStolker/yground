@@ -1,29 +1,11 @@
-/**
- * @param {string} term 
- * @param {Element} [source=document] 
- * @returns {Element[] | null}
- */
-function searchElement(term, source = document) {
-	if (!term || !source) {
-		return null
-	}
 
-	const elements = (() => {
-		if (term[0] === "#") {
-			const element = source.getElementById(term.slice(1));
-			return element ? [element] : [];
-		} else if (term[0] === ".") {
-			return [...source.getElementsByClassName(term.slice(1))];
-		} else {
-			return [...source.getElementsByTagName(term)];
-		}
-	})()
-
-	return elements;
-}
 
 const fetchCache = {}
 
+/**
+ * @param {string} url 
+ * @returns {Promise<string>}
+ */
 async function cachedFetch(url) {
 	if (fetchCache[url]) {
 		return fetchCache[url]
