@@ -1,12 +1,15 @@
-<section class="stage_section {{ stage_type }}">
-	<p class="stage_title">{{ stage_title }}</p>
-	<textarea class="stage_body" onchange="update_output()"></textarea>
-	<br>
+<section class="stage_section">
+	<p>Stage type: </p>
 	<select class="stage_type_select">
 		<option value="map">Map</option>
 		<option value="filter">Filter</option>
 		<option value="reduce">Reduce</option>
 	</select>
-	<button class="add_button">Add stage</button>
-	<button class="delete_button">Delete stage</button>
+	<br>
+	<p class="signature_paragraph" onload="update_stage_signatures()"></p>
+	<textarea class="stage_body" onchange="update_output()"></textarea>
+	<p>}</p>
+	<button class="delete_button">Delete this stage</button>
+	<br>
+	<button class="add_button">Add stage below</button>
 </section>

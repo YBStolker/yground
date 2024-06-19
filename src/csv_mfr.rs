@@ -14,25 +14,10 @@ pub async fn index() -> Option<NamedFile> {
     NamedFile::open(path).await.ok()
 }
 
-fn capitalize(s: impl Into<String>) -> String {
-    let s: String = s.into();
-    let mut c = s.chars();
-    match c.next() {
-        None => String::new(),
-        Some(first) => first.to_uppercase().collect::<String>() + c.as_str(),
-    }
-}
-
-#[get("/get_pipeline_stage/<stage_type>")]
-pub async fn get_pipeline_stage(stage_type: &str) -> Option<RawHtml<String>> {
-    let stage_title = capitalize(stage_type);
-
-    let mut context = Context::new();
-    context.insert("stage_title", stage_title.as_str());
-    context.insert("stage_type", stage_type);
-
+#[get("/get_pipeline_stage")]
+pub async fn get_pipeline_stage() -> Option<RawHtml<String>> {
     let result = TEMPLATES
-        .render("csv_mfr/pipeline_stage.html", &context)
+        .render("csv_mfr/pipeline_stage.html", &Context::default())
         .ok()
         .map(|value| RawHtml(value));
 

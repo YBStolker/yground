@@ -1,304 +1,292 @@
-async function add_stage_main() {
-	const stage_type = document.querySelector("#select_stage_type_main")?.value
-
-	if (!stage_type) {
-		console.error("Invalid stage type")
-		return
-	}
-
-	await add_stage(null, stage_type)
-}
-
 /**
  * @param {number} index 
  * @param {string} stage_type 
+ * @returns {void}
  */
-async function add_stage(index, stage_type) {
-	const stage_element = await create_stage_element(stage_type)
+async function add_stage(index) {
+	const stage_element = (await cached_fetch("/csv_mfr/get_pipeline_stage", "html"));
 
-	const pipeline = document.querySelector("#pipeline")
+	const pipeline = document.querySelector("#pipeline_section");
 
 	if (!pipeline) {
-		console.error("Could not find pipeline")
-		return
+		console.error("Could not find pipeline");
+		return;
 	}
 
-	if ((!index && index !== 0) || !pipeline.childNodes[index]) {
-		pipeline.prepend(stage_element)
+	if (index > 0) {
+		console.log({ stage_element })
+		pipeline.children[index - 1].after(stage_element);
 	} else {
-		pipeline.children[index].after(stage_element)
+		pipeline.prepend(stage_element);
 	}
 
-	update_pipeline_indices()
-}
-
-/**
- * @param {string} stage_type 
- * @returns {Promise<Element | null>}
- */
-async function create_stage_element(stage_type) {
-	/** @type Element */
-	const new_stage = (await fetchTemplate("csv_mfr/stage.html"))
-
-	if (new_stage) {
-		const pretty_title = stage_type[0].toUpperCase() + stage_type.slice(1).toLowerCase()
-		new_stage.querySelector(".stage_title").innerHTML = pretty_title
-
-		if (!new_stage?.classList?.contains(stage_type)) {
-			new_stage.classList.add(stage_type)
-		}
-	}
-
-	return new_stage
+	update_pipeline_indices();
 }
 
 /**
  * @param {number} index 
+ * @returns {void}
  */
 function delete_stage(index) {
-	const pipeline = document.querySelector("#pipeline")
-	pipeline.children[index].remove()
-	update_pipeline_indices()
-	update_output()
-}
-
-function update_pipeline_indices() {
-	const pipeline = document.querySelector("#pipeline")
-
-	pipeline.querySelectorAll(".stage_section").forEach((section, i) => {
-		const select = section.querySelector(".stage_type_select")
-		const add_button = section.querySelector(".add_button")
-		const delete_button = section.querySelector(".delete_button")
-
-		if (!select || !add_button || !delete_button) {
-			console.error("Invalid stage section found.", section)
-			return
-		}
-
-		if (select && add_button) {
-			add_button.onclick = () => add_stage(i, select.value)
-		}
-
-		if (delete_button) {
-			delete_button.onclick = () => delete_stage(i)
-		}
-	})
+	const pipeline = document.querySelector("#pipeline_section");
+	pipeline.children[index].remove();
+	update_pipeline_indices();
+	update_output();
 }
 
 /**
- * @param {string} term 
- * @param {(string) => void} callback 
+ * @returns {void}
  */
-function read_csv_from_input(term, callback) {
-	const file_input = document.querySelector(term)
+function update_pipeline_indices() {
+	const pipeline = document.querySelector("#pipeline_section");
+
+	pipeline?.querySelectorAll(".stage_section").forEach((section, i) => {
+		const add_button = section.querySelector(".add_button");
+		const select = section.querySelector(".stage_type_select");
+		const delete_button = section.querySelector(".delete_button");
+
+		if (!add_button || !delete_button) {
+			console.error("Invalid stage section found.", section);
+			return;
+		}
+
+		add_button.onclick = () => add_stage(i + 1);
+		select.onchange = update_stage_signatures;
+		delete_button.onclick = () => delete_stage(i);
+	})
+
+	update_stage_signatures()
+}
+
+/**
+ * @param {string} input_id 
+ * @param {(string) => void} callback 
+ * @returns {void}
+ */
+function read_csv_from_input(input_id, callback) {
+	const file_input = document.querySelector(input_id);
 	if (!file_input
 		|| !file_input.files[0]
 		|| file_input.type !== "file"
 		|| file_input.accept !== ".csv"
 	) {
-		console.log("invalid file_input")
-		return null
+		console.log("invalid file_input");
+		return null;
 	}
 
-	const reader = new FileReader()
+	const reader = new FileReader();
 
 	reader.onload = load_event => {
-		const content = load_event.target.result
-		callback(content)
+		const content = load_event.target.result;
+		callback(content);
 	}
 
 	reader.onerror = err => {
-		content = null
-		console.error(err)
+		content = null;
+		console.error(err);
 	}
 
-	reader.readAsText(file_input.files[0])
+	reader.readAsText(file_input.files[0]);
 }
-
 
 /**
- * Checks if the needle is in the haystack at the index.
- * @param {number} index 
- * @param {string} needle 
- * @param {string} haystack 
- * @returns {boolean}
+ * @param {string} val 
+ * @returns {void}
  */
-function is_substring_at(index, needle, haystack) {
-	for (let i = 0; i < needle.length; i++) {
-		if (needle[i] !== haystack[i + index]) {
-			return false
-		}
-	}
-	return true
+function parse_value_to_js_char(val) {
+	const quote_char = !val.includes('"') ? '"' : !val.includes("'") ? "'" : "`";
+	return eval(quote_char + val + quote_char);
 }
 
+
+let raw_content = null;
+let result = null;
+
+const map_signature = "function do_map (value, index, array) {"
+const filter_signature = "function do_filter (value, index, array) {"
+const reduce_signature = "function do_reduce (previousValue, currentValue, currentIndex, array) {"
 
 /**
- * @param {string} input_string 
- * @param {string} separator 
- * @param {string} newline 
- * @param {string} quote 
- * @returns {string[][]}
+ * @returns {void}
  */
-function parse_as_csv(input_string, separator, newline, quote) {
-	const table = [[""]]
-
-	let is_quoted = false
-	for (let i = 0; i < input_string.length; i++) {
-		const i_row = table.length - 1
-		const i_value = table[i_row].length - 1
-
-		const is_separator = is_substring_at(i, separator, input_string)
-		if (is_separator && !is_quoted) {
-			table[i_row].push("")
-			i += separator.length - 1
-			continue
-		}
-
-		const is_quote_start = (() => {
-			// The following cases count as a quote start, if it is not currently quoted
-			// <separator><quote>
-			// <newline><quote>
-			// <start of input_string><quote>
-			if (is_quoted) { return false }
-
-			if (!is_substring_at(i, quote, input_string)) {
-				return false
-			}
-
-			if (0 === i) {
-				return true
-			}
-
-			if (is_substring_at(i - separator.length, separator, input_string)) {
-				return true
-			}
-
-			return is_substring_at(i - newline.length, newline, input_string)
-		})()
-
-		if (is_quote_start) {
-			is_quoted = true
-			i += quote.length - 1
-			continue
-		}
-
-		const is_quote_end = (() => {
-			// The following cases count as a quote start
-			// <quote><separator>
-			// <quote><newline>
-			// <quote><end of input_string>
-			if (!is_quoted) { return false }
-
-			if (!is_substring_at(i, quote, input_string)) {
-				return false
-			}
-
-			if (i + quote.length === input_string.length) {
-				return true
-			}
-
-			if (is_substring_at(i + quote.length, separator, input_string)) {
-				return true
-			}
-
-			return is_substring_at(i + quote.length, newline, input_string)
-		})()
-
-		if (is_quote_end) {
-			is_quoted = false
-			i += quote.length - 1
-			continue
-		}
-
-		const is_newline = is_substring_at(i, newline, input_string)
-		if (is_newline && !is_quoted) {
-			table.push([""])
-			continue
-		}
-
-		table[i_row][i_value] += input_string[i]
-	}
-
-	return table
-}
-
-function get_parse_parameters() {
-	const separator_element = document.querySelector("#main_separator_input")
-	const separator_value = separator_element?.value
-	if (!separator_value) {
-		console.error("Invalid separator")
-		// TODO add error element for separator
-	}
-
-	const newline_element = document.querySelector("#main_newline_input")
-	const newline_value = newline_element?.value
-	if (!newline_value) {
-		console.error("Invalid newline")
-		// TODO add error element for newline
-	}
-
-	const quote_element = document.querySelector("#main_quote_input")
-	const quote_value = quote_element?.value
-	if (!quote_value) {
-		console.error("Invalid quote")
-		// TODO add error element for quote
-	}
-
-	if (!separator_value || !newline_value || !quote_value) {
-		return null
-	}
-
-	const separator = eval("`" + separator_value + "`")
-	const newline = eval("`" + newline_value + "`")
-	const quote = eval("`" + quote_value + "`")
-
-	return { separator, newline, quote }
-}
-
-let raw_content = null
-let result = null
-
 function update_output() {
 	read_csv_from_input("#main_file_input", content => {
-		raw_content = JSON.stringify(content)
+		raw_content = content;
+		const detect_instant = new_instant();
+		const params = detect_parse_csv_params(content)
+		const { separator, newline, quote } = params;
+		console.info(`Detected params in ${detect_instant.elapsed()} ms`, params);
 
-		const { separator, newline, quote } = get_parse_parameters()
-		result = parse_as_csv(content, separator, newline, quote)
+		const parse_instant = new_instant();
+		result = parse_as_csv(content, separator, newline, quote);
+		console.info(`Parsed csv ${result.length} lines in ${parse_instant.elapsed()} ms`);
 
-		document.querySelector("#pipeline")?.querySelectorAll(".stage_body").forEach(stage => {
-			const stage_body = stage.value
+		const pipeline_instant = new_instant();
+		document.querySelectorAll(".stage_section").forEach(stage => {
+			const stage_type = stage.querySelector(".stage_type_select").value;
+			console.log({ stage_type });
+
+			const stage_body = stage.querySelector(".stage_body")?.value;
 			if (!Array.isArray(result)) {
-				return
+				console.error("Cannot proces anything other than an array.");
+				return;
 			}
 
-			if (stage.id === "map") {
-				eval("function map_f (row, i, rows) { " + stage_body + " }")
-				result.map(map_f)
+			console.log({ id: stage.id });
+
+			if (stage_type === "map") {
+				eval(map_signature + stage_body + "}");
+				result = result.map(do_map);
 			}
-			else if (stage.id === "filter") {
-				eval("function filter_f (row, i, rows) { " + stage_body + " }")
-				result.filter(filter_f)
+			else if (stage_type === "filter") {
+				console.log({ filter_signature, stage_body });
+				eval(filter_signature + stage_body + "}");
+				result = result.filter(do_filter);
 			}
-			else if (stage.id === "reduce") {
-				eval("function reduce_f (acc, cur) { " + stage_body + " }")
-				result = result.reduce(reduce_f)
+			else if (stage_type === "reduce") {
+				eval(reduce_signature + stage_body + "}");
+				result = result.reduce(do_reduce);
 			}
 		})
+		console.info(`Processed pipeline in ${pipeline_instant.elapsed()} ms`);
 
-		console.info({ raw_content })
-		console.info({ result })
+		console.info("Debug variables available as \"raw_content\" and \"result\"");
 	})
 }
 
-window.addEventListener("load", _load_event => {
-	const file_input = document.querySelector("#main_file_input")
+/**
+ * @returns {void}
+ */
+function update_stage_signatures() {
+	const pipeline = document.querySelector("#pipeline_section");
 
-	if (!file_input) {
-		console.error("Could not find #main_file_input")
-		return
+	pipeline?.querySelectorAll(".stage_section").forEach((section) => {
+		const select = section.querySelector(".stage_type_select");
+		const signature = section.querySelector(".signature_paragraph");
+		if (!select || !signature) {
+			console.log("update_stage_signatures", { select, signature });
+			return;
+		}
+
+		signature.innerHTML = {
+			"map": map_signature,
+			"filter": filter_signature,
+			"reduce": reduce_signature,
+		}[select.value] || "";
+	})
+}
+
+/**
+ * @returns {{content: string, extension: string}}
+ */
+function result_to_string() {
+	if (!Array.isArray(result)) {
+		const content = JSON.stringify(result);
+		const extension = ".json";
+		return { content, extension };
 	}
 
-	file_input.addEventListener("change", update_output)
-})
+	// result is probably CSV like
+	const extension = ".csv";
+
+	let headers = null;
+
+	/** @type {any[][]} */
+	const to_parse = Array.isArray(result[0])
+		? result
+		: result.map(row => {
+			if (!headers) {
+				headers = [];
+				Object.keys(row).forEach(k => headers.push(k));
+			}
+
+			const new_row = [];
+			for (let i = 0; i < headers.length; i++) {
+				new_row.push(row[headers[i]]);
+			}
+			return new_row;
+		})
+
+	if (headers) {
+		to_parse.unshift(headers);
+	}
+
+	let content = "";
+	const separator = ';';
+	const newline = "\n";
+	const quote = '"';
+
+	for (let i = 0; i < to_parse.length; i++) {
+		const row = to_parse[i];
+
+		for (let j = 0; j < row.length; j++) {
+			let value = row[j];
+			value = !value ? "" : typeof value === "string" ? value : JSON.stringify(value);
+
+			if (value.includes(separator)
+				|| value.includes(newline)
+				|| ((value.startsWith(quote) || value.endsWith(quote))
+					&& !(value.startsWith(quote) && value.endsWith(quote)))
+			) {
+				content += quote + value + quote;
+			} else {
+				content += value;
+			}
+
+			content += separator;
+		}
+
+		content += newline;
+	}
+
+	return { content, extension };
+}
+
+
+/**
+ * @returns {void}
+ */
+function download_result() {
+	const main_file_input = document.querySelector("#main_file_input");
+	if (!main_file_input) {
+		console.error("Could not find main_file_input");
+		return;
+	}
+
+	/** @type {string} */
+	const original_file_name = main_file_input?.files[0]?.name;
+	if (!original_file_name) {
+		console.error("Could not find original_file_name");
+		return;
+	}
+
+	const { content, extension } = result_to_string();
+
+	const file_name = original_file_name.split(".").slice(0, -1).join(".") + "_result" + extension;
+
+	download(file_name, content);
+}
+
+/**
+ * @param {string} file_name 
+ * @param {string} content 
+ * @returns {void}
+ */
+function download(file_name, content) {
+	const blob = new Blob([content], { type: "text/csv" });
+
+	const url = window.URL.createObjectURL(blob);
+	const elem = window.document.createElement("a");
+
+	elem.href = url;
+	elem.download = file_name;
+
+	document.body.appendChild(elem);
+
+	elem.click();
+
+	document.body.removeChild(elem);
+	window.URL.revokeObjectURL(url);
+}
+
 

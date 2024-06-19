@@ -1,4 +1,5 @@
 pub mod csv_mfr;
+pub mod test;
 
 use std::path::Path;
 
@@ -21,11 +22,7 @@ async fn index() -> Option<NamedFile> {
 
 lazy_static! {
     pub static ref TEMPLATES: Tera = {
-        let mut tera = Tera::new("templates/**/*.html").expect("Could not create Tera object.");
-
-        tera.autoescape_on(vec![".html", ".sql"]);
-        println!("{:?}", tera.get_template_names().collect::<Vec<&str>>());
-
+        let tera = Tera::new("templates/**/*.html").expect("Could not create Tera object.");
         tera
     };
 }
@@ -52,6 +49,7 @@ async fn main() -> Result<(), rocket::Error> {
     let _rocket = rocket::build()
         .mount("/", routes![index, navbar])
         .mount("/public", FileServer::from(relative!("public")))
+        .mount("/test", routes![test::test_static, test::test_fn])
         .mount(
             "/csv_mfr",
             routes![csv_mfr::index, csv_mfr::get_pipeline_stage],

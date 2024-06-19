@@ -1,44 +1,36 @@
-
-
-const fetchCache = {}
+const fetch_cache = {};
 
 /**
  * @param {string} url 
  * @returns {Promise<string>}
  */
-async function cachedFetch(url) {
-	if (fetchCache[url]) {
-		return fetchCache[url]
+async function cached_fetch(url, type) {
+	let result;
+	if (fetch_cache[url]) {
+		result = fetch_cache[url];
+	}
+	else {
+		result = await fetch(url)
+			.then(response => response.text())
+			.catch(error => console.error("Could not fetch", url, error));
+		fetch_cache[url] = result;
 	}
 
-	let result = await fetch(url)
-		.then(response => response.text())
-		.catch(error => console.error("Could not fetch template", url, error))
+	if (type === "html" && result) {
+		result = new DOMParser().parseFromString(result, "text/html").body.firstElementChild;
+	}
 
-	fetchCache[url] = result
-
-	return result
+	return result;
 }
 
-/**
- * @param {string} template_id 
- * @returns {Promise<Element | null>}
- */
-async function fetchTemplate(template_id) {
-	const template_endpoint = (() => {
-		if (template_id[0] !== "/") {
-			template_id = "/" + template_id
-		}
+function new_instant() {
+	return {
+		start: new Date(),
 
-		template_id = "/template" + template_id
-
-		return template_id
-	})()
-
-
-	const html = await cachedFetch(template_endpoint)
-
-	return !html ? null
-		: new DOMParser().parseFromString(html, "text/html").body.firstElementChild
+		elapsed: function() {
+			return new Date() - this.start;
+		},
+	}
 }
+
 
