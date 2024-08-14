@@ -33,4 +33,43 @@ function new_instant() {
 	}
 }
 
+class Query {
+	constructor(query, source) {
+		/** @type Element[] */
+		this.result = [...(source ? source : document).querySelector(query)];
+	}
+
+	set_attribute(attributeName, attributeValue) {
+		for (const element of this.result) {
+			element.setAttribute(attributeName, attributeValue);
+		}
+		return this;
+	}
+
+	add_attribute(attributeName, attributeValue) {
+		for (const element of this.result) {
+			const attribute = element.getAttribute(attributeName);
+			element.setAttribute(attributeName, attribute ? attribute + " " + attributeValue : attributeValue);
+		}
+		return this;
+	}
+}
+
+/**
+* @param {string} query
+* @returns {Element | Element[]}
+*/
+function get_el(query) {
+	const result = [...document.querySelectorAll(query)];
+
+	if (result.length < 1) {
+		return null;
+	}
+
+	if (result.length === 1) {
+		return result[0];
+	}
+
+	return result;
+}
 

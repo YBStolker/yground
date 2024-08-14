@@ -1,4 +1,5 @@
 pub mod csv_mfr;
+pub mod hexy;
 pub mod test;
 
 use std::path::Path;
@@ -14,17 +15,17 @@ use tera::Tera;
 
 use lazy_static::lazy_static;
 
-#[get("/")]
-async fn index() -> Option<NamedFile> {
-    let path = Path::new(relative!("public/index.html"));
-    NamedFile::open(path).await.ok()
-}
-
 lazy_static! {
     pub static ref TEMPLATES: Tera = {
         let tera = Tera::new("templates/**/*.html").expect("Could not create Tera object.");
         tera
     };
+}
+
+#[get("/")]
+async fn index() -> Option<NamedFile> {
+    let path = Path::new(relative!("public/index.html"));
+    NamedFile::open(path).await.ok()
 }
 
 #[get("/navbar/<active>")]
@@ -34,6 +35,7 @@ async fn navbar(active: Option<&str>) -> Option<RawHtml<String>> {
     let mut context = Context::new();
     context.insert("home", "");
     context.insert("csv_mfr", "");
+    context.insert("hexy", "");
 
     if context.contains_key(active) {
         context.insert(active, "active")
@@ -54,6 +56,7 @@ async fn main() -> Result<(), rocket::Error> {
             "/csv_mfr",
             routes![csv_mfr::index, csv_mfr::get_pipeline_stage],
         )
+        .mount("/hexy", routes![hexy::index])
         .launch()
         .await?;
 

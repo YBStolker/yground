@@ -247,7 +247,7 @@ function result_to_string() {
  * @returns {void}
  */
 function download_result() {
-	const main_file_input = document.querySelector("#main_file_input");
+	const main_file_input = get_el("#main_file_input");
 	if (!main_file_input) {
 		console.error("Could not find main_file_input");
 		return;
