@@ -8,11 +8,12 @@
 	<script src="/public/htmx.js"></script>
 	<script src="/public/index.js"></script>
 	<script src="/public/util/parse_csv.js"></script>
-	<script src="/public/csv_mfr/index.js"></script>
+	<script src="/public/csv_mfr/csv_mfr.js"></script>
+	<link rel="icon" href="/public/favicon.ico" type="image/x-icon">
 </head>
 
 <body>
-	<nav hx-get="/navbar/csv_mfr" hx-trigger="load" hx-swap="outerHTML"></nav>
+	<div hx-get="/navbar/csv_mfr" hx-trigger="load" hx-swap="outerHTML"></div>
 	<div name="test" id="test_div"></div>
 	<h1>CSV MFR</h1>
 	<input id="main_file_input" type="file" name="csv_file" accept=".csv" onchange="update_output()">

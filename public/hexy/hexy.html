@@ -2,17 +2,18 @@
 <html lang="en">
 
 <head>
-	<title>Yground</title>
+	<title>Hexy</title>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<script src="/public/htmx.js"></script>
-	<script src="/public/index.js"></script>
 	<link rel="icon" href="/public/favicon.ico" type="image/x-icon">
+	<link rel="stylesheet" href="/public/hexy/hexy.css">
 </head>
 
 <body>
-	<div hx-get="/navbar/home" hx-trigger="load" hx-swap="outerHTML"></div>
-	<h1>You are on Yground.</h1>
+	<div hx-get="/navbar/hexy" hx-trigger="load" hx-swap="outerHTML"></div>
+	<h1>Hexy</h1>
+	<div hx-get="/hexy/get_board?size=7" hx-trigger="load" hx-swap="outerHTML"></div>
 </body>
 
 </html>

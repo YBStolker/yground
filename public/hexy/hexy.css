@@ -1,0 +1,49 @@
+body {
+    background-color: cadetblue;
+}
+
+.hex_grid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+    clear: both;
+}
+
+.hex_row {
+    display: flex;
+    margin: 0;
+    padding: 0;
+}
+
+.hexagon {
+    position: relative;
+    color: white;
+    margin: 0;
+    padding: 0;
+}
+
+.hexagon .shape {
+    color: black;
+    width: fit-content;
+    height: min-content;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    margin-top: -100px;
+    margin-right: 36px;
+    display: block;
+    align-self: center;
+    font-size: 100px;
+}
+
+.hexagon .value {
+    position: absolute;
+    left: 36px;
+    top: 0;
+    transform: translate(0, -36px);
+    margin: 0;
+    padding: 0;
+    align-self: center;
+}

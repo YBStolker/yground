@@ -1,0 +1,8 @@
+- convert from grid id to hex id
+- convert from hex id to grid id
+- convert board to notation
+- convert notation to board
+- store board notation and last clicked in html
+- determine legal moves
+- parse last clicked and change board state
+- add legal move indications

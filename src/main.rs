@@ -1,6 +1,6 @@
-pub mod csv_mfr;
-pub mod hexy;
-pub mod test;
+mod csv_mfr;
+mod hexy;
+mod util;
 
 use std::path::Path;
 
@@ -9,6 +9,7 @@ use rocket::fs::FileServer;
 use rocket::fs::NamedFile;
 use rocket::get;
 use rocket::response::content::RawHtml;
+use rocket::response::Redirect;
 use rocket::routes;
 use tera::Context;
 use tera::Tera;
@@ -16,16 +17,18 @@ use tera::Tera;
 use lazy_static::lazy_static;
 
 lazy_static! {
-    pub static ref TEMPLATES: Tera = {
-        let tera = Tera::new("templates/**/*.html").expect("Could not create Tera object.");
-        tera
-    };
+    pub static ref TEMPLATES: Tera = Tera::new("**/*.html").expect("Could not create Tera object.");
 }
 
 #[get("/")]
 async fn index() -> Option<NamedFile> {
     let path = Path::new(relative!("public/index.html"));
     NamedFile::open(path).await.ok()
+}
+
+#[get("/favicon.ico")]
+async fn favicon() -> Redirect {
+    Redirect::to("/public/favicon.ico")
 }
 
 #[get("/navbar/<active>")]
@@ -41,22 +44,18 @@ async fn navbar(active: Option<&str>) -> Option<RawHtml<String>> {
         context.insert(active, "active")
     }
 
-    let result = RawHtml(TEMPLATES.render("navbar.html", &context).unwrap());
+    let result = TEMPLATES.render("templates/navbar.html", &context).unwrap();
 
-    Some(result)
+    Some(RawHtml(result))
 }
 
 #[rocket::main]
 async fn main() -> Result<(), rocket::Error> {
     let _rocket = rocket::build()
-        .mount("/", routes![index, navbar])
+        .mount("/", routes![index, navbar, favicon])
         .mount("/public", FileServer::from(relative!("public")))
-        .mount("/test", routes![test::test_static, test::test_fn])
-        .mount(
-            "/csv_mfr",
-            routes![csv_mfr::index, csv_mfr::get_pipeline_stage],
-        )
-        .mount("/hexy", routes![hexy::index])
+        .mount("/csv_mfr", csv_mfr::get_routes())
+        .mount("/hexy", hexy::get_routes())
         .launch()
         .await?;
 
